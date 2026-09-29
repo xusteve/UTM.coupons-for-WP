@@ -26,6 +26,7 @@ class Coupons_Table extends \WP_List_Table {
 			'status'    => __( 'Store status', 'utm-coupons' ),
 			'landing'   => __( 'Landing page', 'utm-coupons' ),
 			'shortlink' => __( 'Short link', 'utm-coupons' ),
+			'embed'     => __( 'Embed code', 'utm-coupons' ),
 			'seen'      => __( 'Last seen', 'utm-coupons' ),
 		);
 	}
@@ -53,6 +54,12 @@ class Coupons_Table extends \WP_List_Table {
 			case 'shortlink':
 				$slug = 'https://utm.coupons/r/' . sanitize_title( $item['code'] );
 				return '<button class="button button-small utm-copy" data-clip="' . esc_attr( $slug ) . '">' . esc_html__( 'Copy', 'utm-coupons' ) . '</button>';
+			case 'embed':
+				$snippet = Embed::snippet( array( 'code' => $item['code'] ) );
+				if ( '' === $snippet ) {
+					return '';
+				}
+				return '<button class="button button-small utm-copy" data-clip="' . esc_attr( $snippet ) . '">' . esc_html__( 'Copy embed', 'utm-coupons' ) . '</button>';
 			case 'seen':
 				return esc_html( $item['seen'] );
 			default:
