@@ -4,7 +4,7 @@ Tags: coupons, woocommerce, easy digital downloads, attribution, coupon tracking
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,9 @@ No. Only the order id, amount, currency and coupon code are reported, plus the a
 Yes. EDD 3.x stores data in custom tables that require MySQL. The plugin detects SQLite and shows a notice.
 
 == Changelog ==
+
+= 0.1.1 =
+* Added the `[utm_coupon]` shortcode and a Copy embed button on the Coupons screen, so a synced coupon can be displayed on the store without leaving WordPress.
 
 = 0.1.0 =
 * Initial release: connection wizard, click capture, signed conversion reporting, retry queue, platform detection, coupons list, logs and dashboard widget.
