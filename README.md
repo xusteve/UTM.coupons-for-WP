@@ -33,6 +33,47 @@ earned it — no manual exports, no code.
 2. Go to **UTM.coupons → Connection** and paste your UTM.coupons API key.
 3. That's it. New coupons sync and orders are attributed automatically.
 
+## Showing a coupon on your store
+
+Syncing keeps UTM.coupons up to date; the widget is what shows the coupon to
+shoppers. Two ways to place one:
+
+**Shortcode** — put it in a post, page or widget area:
+
+```
+[utm_coupon code="SUMMER20"]
+[utm_coupon code="SUMMER20" variant="button" button-style="pill" button-text="Get 25% off"]
+[utm_coupon code="SUMMER20" variant="bar" discount="25" unit="%" theme="dark"]
+```
+
+**Copy embed** — the Coupons screen has a *Copy embed* button on every row that
+puts the runnable snippet on your clipboard:
+
+```html
+<script async src="https://utm.coupons/embed/v1.js"></script>
+<utm-coupon code="SUMMER20"></utm-coupon>
+```
+
+The script tag is not optional — a bare `<utm-coupon>` element renders nothing.
+
+### Attributes
+
+| Attribute | Values | Notes |
+| --- | --- | --- |
+| `code` | your coupon code | Required. Without it nothing is rendered. |
+| `variant` | `ticket` (default) · `button` · `mini` · `bar` · `badge` | Anything unrecognised falls back to `ticket`. |
+| `button-style` | `solid` (default) · `outline` · `pill` · `reveal` · `stacked` | Button variant only. |
+| `button-text` | any short label | Button variant only, and only for `solid` / `pill` — the other styles have no text slot. |
+| `theme` | `light` (default) · `dark` · `brand` · `minimal` | |
+| `description` · `discount` · `unit` · `expires` | | Optional detail shown by the roomier variants. |
+| `logo` · `brand` · `domain` | | Override the identity shown in the ticket plate. |
+
+Defaults are never written out: the shortcode emits `variant="ticket"` only when
+you actually asked for something else, so the snippet stays readable.
+
+The ticket variant ships a share sheet — X, Facebook, Reddit, Bluesky, Email and
+a copy action — so a shopper can spread the code without you building anything.
+
 ## How reporting works
 
 Orders and refunds are signed and POSTed to the conversion endpoint:
@@ -82,6 +123,12 @@ readme.txt                    WordPress.org readme
 ```
 
 ## Changelog
+
+### 0.1.1
+
+Added the `[utm_coupon]` shortcode and a Copy embed button on the Coupons
+screen, so a synced coupon can be displayed on the store without leaving
+WordPress.
 
 ### 0.1.0
 
