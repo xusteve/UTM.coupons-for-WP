@@ -15,7 +15,9 @@ class Settings {
 
 	const OPT_API_KEY    = 'utm_coupons_api_key';
 	const OPT_HMAC       = 'utm_coupons_hmac_secret';
+	const OPT_WEBHOOK_SECRET = 'utm_coupons_webhook_secret';
 	const OPT_WORKSPACE  = 'utm_coupons_workspace';
+	const OPT_WORKSPACE_ID = 'utm_coupons_workspace_id';
 	const OPT_SITE_TOKEN = 'utm_coupons_site_token';
 	const OPT_SYNC_A     = 'utm_coupons_sync_store_to_platform';
 	const OPT_SYNC_B     = 'utm_coupons_sync_platform_to_store';
@@ -69,6 +71,18 @@ class Settings {
 
 	public static function get_api_key() {
 		$v = get_option( self::OPT_API_KEY, '' );
+		if ( '' === $v ) {
+			return '';
+		}
+		return self::decrypt( $v );
+	}
+
+	public static function set_webhook_secret( $plain ) {
+		update_option( self::OPT_WEBHOOK_SECRET, self::encrypt( $plain ) );
+	}
+
+	public static function get_webhook_secret() {
+		$v = get_option( self::OPT_WEBHOOK_SECRET, '' );
 		if ( '' === $v ) {
 			return '';
 		}

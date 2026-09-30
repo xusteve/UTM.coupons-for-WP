@@ -166,7 +166,10 @@ class Admin {
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'UTM.coupons — Connection', 'utm-coupons' ) . '</h1>';
 
-		// Status card.
+		// One-click connect card (OAuth) — the primary path.
+		OAuth_Client::render_connect_card();
+
+		// Manual status card (legacy/manual verification).
 		echo '<div class="utm-card" style="max-width:640px;margin-bottom:20px">';
 		echo '<p style="font-size:15px"><span class="utm-status-dot ' . $dot . '"></span><strong>' . esc_html( $label ) . '</strong>';
 		if ( $ws ) {
@@ -179,7 +182,9 @@ class Admin {
 		echo '<p><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=utm_coupons_test' ), 'utm_test' ) ) . '">' . esc_html__( 'Run connection test', 'utm-coupons' ) . '</a></p>';
 		echo '</div>';
 
-		// Settings form.
+		// Advanced/manual settings form.
+		echo '<details style="max-width:640px;margin-bottom:20px"><summary style="cursor:pointer;font-weight:600;color:#57606a">' . esc_html__( 'Manual API credentials (advanced)', 'utm-coupons' ) . '</summary>';
+		echo '<div style="margin-top:12px">';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="utm_coupons_save_settings">';
 		wp_nonce_field( 'utm_save_settings' );
@@ -197,7 +202,7 @@ class Admin {
 		if ( $hmac_set ) {
 			echo ' <span class="description">' . esc_html__( 'Set & encrypted.', 'utm-coupons' ) . '</span>';
 		}
-		echo '<p class="description">' . esc_html__( 'Normally auto-provisioned from the API key. Paste manually only if you were given a secret directly.', 'utm-coupons' ) . '</p></td></tr>';
+		echo '<p class="description">' . esc_html__( 'Normally auto-provisioned by one-click connect. Paste manually only if you were given a secret directly.', 'utm-coupons' ) . '</p></td></tr>';
 
 		echo '<tr><th scope="row">' . esc_html__( 'Sync direction', 'utm-coupons' ) . '</th><td>';
 		echo self::toggle( 'sync_a', $sync_a, __( 'Store → UTM.coupons (real-time)', 'utm-coupons' ) );
@@ -211,6 +216,7 @@ class Admin {
 		echo '</tbody></table>';
 		echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save changes', 'utm-coupons' ) . '</button></p>';
 		echo '</form>';
+		echo '</div></details>';
 		echo '</div>';
 	}
 

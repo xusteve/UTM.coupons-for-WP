@@ -3,7 +3,7 @@
  * Plugin Name: UTM.coupons for WP
  * Plugin URI: https://utm.coupons/wp-plugin/
  * Description: Connect WooCommerce, Easy Digital Downloads, SureCart or FluentCart to UTM.coupons. Coupons sync automatically and every order is attributed with zero setup.
- * Version: 0.1.1
+ * Version: 1.01
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: UTM.coupons
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'UTM_COUPONS_VERSION', '0.1.1' );
+define( 'UTM_COUPONS_VERSION', '1.01' );
 define( 'UTM_COUPONS_FILE', __FILE__ );
 define( 'UTM_COUPONS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'UTM_COUPONS_URL', plugin_dir_url( __FILE__ ) );
@@ -33,6 +33,7 @@ require_once UTM_COUPONS_PATH . 'includes/class-click-capture.php';
 require_once UTM_COUPONS_PATH . 'includes/class-platforms.php';
 require_once UTM_COUPONS_PATH . 'includes/class-admin.php';
 require_once UTM_COUPONS_PATH . 'includes/class-embed.php';
+require_once UTM_COUPONS_PATH . 'includes/class-oauth-client.php';
 
 /**
  * Boot the plugin.
@@ -41,6 +42,7 @@ function utm_coupons_boot() {
 	UTM_Coupons\Click_Capture::init();
 	UTM_Coupons\Platforms::init();
 	UTM_Coupons\Embed::init();
+	UTM_Coupons\OAuth_Client::init();
 	if ( is_admin() ) {
 		UTM_Coupons\Admin::init();
 	}

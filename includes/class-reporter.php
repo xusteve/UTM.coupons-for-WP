@@ -37,13 +37,18 @@ class Reporter {
 
 		$payload = array_merge(
 			array(
-				'orderId'    => (string) $order_id,
-				'amount'     => (float) $amount,
-				'currency'   => (string) $currency,
-				'couponCode' => strtoupper( (string) $code ),
-				'clickId'    => $click_id,
-				'status'     => (string) $status,
-				'occurredAt' => gmdate( 'Y-m-d' ) . 'T' . gmdate( 'H:i:s' ) . 'Z',
+				'orderId'     => (string) $order_id,
+				'amount'      => (float) $amount,
+				'currency'    => (string) $currency,
+				'couponCode'  => strtoupper( (string) $code ),
+				'clickId'     => $click_id,
+				'status'      => (string) $status,
+				'occurredAt'  => gmdate( 'Y-m-d' ) . 'T' . gmdate( 'H:i:s' ) . 'Z',
+				// P2 (M5.4): the platform verifies conversion reports against a
+				// per-workspace signing secret. Sending our workspace id lets
+				// the hooks worker pick the right secret without depending on
+				// the coupon existing in the platform ledger.
+				'workspaceId' => Settings::get( Settings::OPT_WORKSPACE_ID, '' ),
 			),
 			$extra
 		);
