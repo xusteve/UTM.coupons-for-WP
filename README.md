@@ -7,7 +7,7 @@ earned it — no manual exports, no code.
 - **Plugin page:** https://utm.coupons/wp-plugin/
 - **Integration guide:** https://utm.coupons/docs/wp-integrations/
 - **Dashboard:** https://app.utm.coupons
-- **Version:** 1.02 · **Requires:** WordPress 6.0+, PHP 7.4+
+- **Version:** 1.03 · **Requires:** WordPress 6.0+, PHP 7.4+
 - **License:** GPL-2.0-or-later
 
 ## What it does
@@ -26,8 +26,11 @@ earned it — no manual exports, no code.
   SureCart and FluentCart.
 - **Public landing pages (opt-in)** — give any coupon a clean `/c/` landing page
   and a short link.
-- **Coupons list, event logs and a dashboard widget** — see what was synced and
-  what was reported, right inside wp-admin.
+- **Coupons list with attribution** — every coupon on your workspace with the
+  revenue and orders it earned, plus an attribution summary (revenue, clicks,
+  conversion rate, attribution coverage) over the last 7, 30 or 90 days.
+- **Event logs and a dashboard widget** — see what was reported, right inside
+  wp-admin.
 
 ## Installation
 

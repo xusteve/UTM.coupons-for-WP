@@ -4,7 +4,7 @@ Tags: coupons, woocommerce, easy digital downloads, attribution, coupon tracking
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.02
+Stable tag: 1.03
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,13 @@ No. Only the order id, amount, currency and coupon code are reported, plus the a
 Yes. EDD 3.x stores data in custom tables that require MySQL. The plugin detects SQLite and shows a notice.
 
 == Changelog ==
+
+= 1.03 =
+* Rebuilt the Coupons screen around the platform's own data. It used to list whatever codes the store had reported locally and rebuild landing pages and short links from them, so codes with no coupon on UTM.coupons produced links that 404'd. Coupons now come from the workspace, and short links use the slug the platform allocated (a slug can be suffixed, so rebuilding it from the code was never safe).
+* Codes that earned revenue but have no coupon on UTM.coupons are still listed, marked "Reported only", with their revenue and orders — but without links, rather than with links that go nowhere.
+* Added an attribution summary above the table: attributed revenue, clicks, conversion rate and attribution coverage, with a 7 / 30 / 90 day switch, matching the dashboard overview.
+* Added per-coupon revenue and orders columns, filled from the same report request.
+* Report and coupon requests are cached for five minutes, and the screen degrades to a notice instead of failing when the API is unreachable.
 
 = 1.02 =
 * Removed the manual API credentials (advanced) block — OAuth one-click connect now provisions all secrets automatically.

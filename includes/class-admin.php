@@ -22,49 +22,91 @@ class Coupons_Table extends \WP_List_Table {
 
 	public function get_columns() {
 		return array(
-			'code'      => __( 'Coupon', 'utm-coupons' ),
-			'status'    => __( 'Store status', 'utm-coupons' ),
-			'landing'   => __( 'Landing page', 'utm-coupons' ),
-			'shortlink' => __( 'Short link', 'utm-coupons' ),
-			'embed'     => __( 'Embed code', 'utm-coupons' ),
-			'seen'      => __( 'Last seen', 'utm-coupons' ),
+			'code'        => __( 'Coupon', 'utm-coupons' ),
+			'status'      => __( 'Status', 'utm-coupons' ),
+			'revenue'     => __( 'Revenue', 'utm-coupons' ),
+			'orders'      => __( 'Orders', 'utm-coupons' ),
+			'shortlink'   => __( 'Short link', 'utm-coupons' ),
+			'actions'     => __( 'Page & embed', 'utm-coupons' ),
 		);
 	}
 
 	public function prepare_items() {
 		$this->_column_headers = array( $this->get_columns(), array(), array() );
-		$mirror                = Reporter::get_mirror();
-		$items                 = array();
-		foreach ( $mirror as $row ) {
-			$items[] = $row;
-		}
-		$this->items = $items;
+		$this->items           = Reports::rows( Reports::window( isset( $_GET['days'] ) ? wp_unslash( $_GET['days'] ) : 0 ) )['rows']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen.
 	}
 
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'code':
 				return '<code>' . esc_html( $item['code'] ) . '</code>';
+
 			case 'status':
-				$cls = 'utm-pill ' . ( 'active' === $item['status'] ? 'utm-pill-ok' : 'utm-pill-off' );
-				return '<span class="' . $cls . '">' . esc_html( ucfirst( $item['status'] ) ) . '</span>';
-			case 'landing':
-				$url = 'https://utm.coupons/c/' . sanitize_title( $item['code'] );
-				return '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html__( 'View /c/', 'utm-coupons' ) . '</a>';
+				return self::status_pill( $item );
+
+			case 'revenue':
+				return Reports::performance_cell( $item['performance'] );
+
+			case 'orders':
+				$orders = Reports::order_count( $item['performance'] );
+				return $orders > 0 ? esc_html( (string) $orders ) : '<span aria-hidden="true">—</span>';
+
 			case 'shortlink':
-				$slug = 'https://utm.coupons/r/' . sanitize_title( $item['code'] );
-				return '<button class="button button-small utm-copy" data-clip="' . esc_attr( $slug ) . '">' . esc_html__( 'Copy', 'utm-coupons' ) . '</button>';
-			case 'embed':
-				$snippet = Embed::snippet( array( 'code' => $item['code'] ) );
-				if ( '' === $snippet ) {
-					return '';
-				}
-				return '<button class="button button-small utm-copy" data-clip="' . esc_attr( $snippet ) . '">' . esc_html__( 'Copy embed', 'utm-coupons' ) . '</button>';
-			case 'seen':
-				return esc_html( $item['seen'] );
+				return self::shortlink_cell( $item );
+
+			case 'actions':
+				return self::actions_cell( $item );
+
 			default:
 				return '';
 		}
+	}
+
+	/**
+	 * Status pill. "Reported only" means the store reported orders with this
+	 * code but there is no coupon on UTM.coupons, so it has no page or link.
+	 */
+	private static function status_pill( $item ) {
+		if ( empty( $item['exists'] ) ) {
+			return '<span class="utm-pill utm-pill-warn">'
+				. esc_html__( 'Reported only', 'utm-coupons' ) . '</span>';
+		}
+		$status = (string) $item['status'];
+		$label  = ucfirst( $status );
+		$cls    = 'utm-pill ' . ( 'active' === $status ? 'utm-pill-ok' : 'utm-pill-off' );
+		return '<span class="' . $cls . '">' . esc_html( $label ) . '</span>';
+	}
+
+	/**
+	 * Short-link cell. Empty when the platform allocated no slug — showing a
+	 * rebuilt URL here is what produced the dead links.
+	 */
+	private static function shortlink_cell( $item ) {
+		if ( empty( $item['shortUrl'] ) ) {
+			return '<span class="description">'
+				. esc_html__( 'Not in workspace', 'utm-coupons' ) . '</span>';
+		}
+		return '<button class="button button-small utm-copy" data-clip="' . esc_attr( $item['shortUrl'] ) . '">'
+			. esc_html__( 'Copy link', 'utm-coupons' ) . '</button>'
+			. '<div class="utm-url">' . esc_html( $item['shortUrl'] ) . '</div>';
+	}
+
+	private static function actions_cell( $item ) {
+		$out = array();
+		if ( ! empty( $item['landingUrl'] ) ) {
+			$out[] = '<a class="button button-small" href="' . esc_url( $item['landingUrl'] ) . '" target="_blank" rel="noopener">'
+				. esc_html__( 'View /c/', 'utm-coupons' ) . '</a>';
+		}
+		$snippet = Embed::snippet( array( 'code' => $item['code'] ) );
+		if ( '' !== $snippet ) {
+			$out[] = '<button class="button button-small utm-copy" data-clip="' . esc_attr( $snippet ) . '">'
+				. esc_html__( 'Copy embed', 'utm-coupons' ) . '</button>';
+		}
+		if ( empty( $out ) ) {
+			return '<span class="description">'
+				. esc_html__( 'Create it on UTM.coupons', 'utm-coupons' ) . '</span>';
+		}
+		return implode( ' ', $out );
 	}
 }
 
@@ -165,6 +207,19 @@ class Admin {
 		.utm-card .utm-state{font-size:13px;font-weight:600}
 		.utm-card code{font-size:11px;word-break:break-all}
 		.utm-mask{font-family:monospace}
+		.utm-pill-warn{background:#fff8c5;color:#614200}
+		.utm-url{font-family:monospace;font-size:11px;color:#646970;margin-top:4px;word-break:break-all}
+		.utm-summary-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0 8px}
+		.utm-summary-title{font-size:14px;font-weight:600}
+		.utm-windows{display:flex;gap:6px}
+		.utm-window{padding:4px 10px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;color:#50575e;text-decoration:none}
+		.utm-window:hover{background:#f0f0f1}
+		.utm-window.is-active{background:#2271b1;border-color:#2271b1;color:#fff}
+		.utm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0 0 4px}
+		.utm-kpi{border:1px solid #d0d7de;border-radius:8px;padding:12px 14px;background:#fff}
+		.utm-kpi-label{font-size:12px;color:#646970}
+		.utm-kpi-value{font-size:24px;font-weight:600;line-height:1.2;margin-top:2px}
+		.utm-kpi-hint{font-size:12px;color:#8c8f94;margin-top:2px}
 		';
 	}
 
@@ -240,12 +295,115 @@ class Admin {
 	// ---------------------------------------------------------------------
 
 	public static function render_coupons() {
+		$days = Reports::window( isset( $_GET['days'] ) ? sanitize_text_field( wp_unslash( $_GET['days'] ) ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen.
+		$data = Reports::rows( $days );
+
 		echo '<div class="wrap"><h1>' . esc_html__( 'UTM.coupons — Coupons', 'utm-coupons' ) . '</h1>';
-		echo '<p class="description">' . esc_html__( 'Coupons detected and reported by the plugin. Landing pages and short links are generated automatically on UTM.coupons.', 'utm-coupons' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Coupons on your UTM.coupons workspace, with the attribution they earned. Links come from the platform, so they work.', 'utm-coupons' ) . '</p>';
+
+		self::render_attribution_summary( $data, $days );
+
+		if ( ! $data['ok'] ) {
+			echo '<div class="notice notice-warning inline"><p>'
+				. esc_html__( 'Attribution could not be loaded right now.', 'utm-coupons' )
+				. ' <code>' . esc_html( $data['error'] ) . '</code></p></div>';
+		}
+
 		$table = new Coupons_Table();
 		$table->prepare_items();
 		$table->display();
+
+		echo '<p class="description" style="max-width:640px;margin-top:12px">'
+			. esc_html__( '“Reported only” codes earned revenue but have no coupon on UTM.coupons yet — so there is no landing page or short link to show. Create the coupon there to get them.', 'utm-coupons' )
+			. '</p>';
 		echo '</div>';
+	}
+
+	/**
+	 * Attribution totals above the table, mirroring the dashboard overview.
+	 *
+	 * @param array $data Output of Reports::rows().
+	 * @param int   $days
+	 */
+	private static function render_attribution_summary( $data, $days ) {
+		$overview = $data['overview'];
+		$screen   = admin_url( 'admin.php?page=utm-coupons-coupons' );
+
+		echo '<div class="utm-summary-head">';
+		echo '<div class="utm-summary-title">' . esc_html__( 'Attribution', 'utm-coupons' ) . '</div>';
+		echo '<div class="utm-windows">';
+		foreach ( Reports::WINDOWS as $w ) {
+			$url   = add_query_arg( 'days', $w, $screen );
+			$cls   = 'utm-window' . ( $w === $days ? ' is-active' : '' );
+			echo '<a class="' . $cls . '" href="' . esc_url( $url ) . '">'
+				. sprintf( esc_html__( 'Last %d days', 'utm-coupons' ), (int) $w ) . '</a>';
+		}
+		echo '</div></div>';
+
+		if ( ! is_array( $overview ) ) {
+			echo '<div class="utm-kpis"><div class="utm-kpi"><div class="utm-kpi-label">'
+				. esc_html__( 'No data', 'utm-coupons' ) . '</div><div class="utm-kpi-value">—</div></div></div>';
+			return;
+		}
+
+		$currencies = $overview['currencies'] ?? array();
+		$primary    = reset( $currencies );
+		$clicks     = (int) ( $overview['clicks'] ?? 0 );
+		$rate       = $overview['conversionRate'] ?? null;
+		$attribution = $overview['attribution'] ?? array();
+
+		echo '<div class="utm-kpis">';
+
+		echo '<div class="utm-kpi"><div class="utm-kpi-label">';
+		echo $primary
+			? esc_html__( 'Attributed revenue', 'utm-coupons' ) . ' · ' . esc_html( $primary['currency'] )
+			: esc_html__( 'Attributed revenue', 'utm-coupons' );
+		echo '</div><div class="utm-kpi-value">';
+		echo $primary ? esc_html( Reports::money( $primary['revenue'], $primary['currency'] ) ) : '—';
+		echo '</div><div class="utm-kpi-hint">';
+		echo $primary
+			? sprintf(
+				/* translators: 1: paid orders, 2: total orders */
+				esc_html__( '%1$d paid of %2$d orders', 'utm-coupons' ),
+				(int) $primary['paidOrders'],
+				(int) $primary['orders']
+			)
+			: esc_html__( 'No orders reported yet', 'utm-coupons' );
+		echo '</div></div>';
+
+		echo '<div class="utm-kpi"><div class="utm-kpi-label">' . esc_html__( 'Clicks', 'utm-coupons' )
+			. '</div><div class="utm-kpi-value">' . esc_html( number_format_i18n( $clicks ) )
+			. '</div><div class="utm-kpi-hint">' . esc_html__( 'Short-link clicks', 'utm-coupons' ) . '</div></div>';
+
+		echo '<div class="utm-kpi"><div class="utm-kpi-label">' . esc_html__( 'Conversion rate', 'utm-coupons' )
+			. '</div><div class="utm-kpi-value">'
+			. ( null === $rate ? '—' : esc_html( number_format_i18n( $rate * 100, 1 ) . '%' ) )
+			. '</div><div class="utm-kpi-hint">' . esc_html__( 'Orders over clicks', 'utm-coupons' ) . '</div></div>';
+
+		$matched   = (int) ( $attribution['matched'] ?? 0 );
+		$unmatched = (int) ( $attribution['unmatched'] ?? 0 );
+		echo '<div class="utm-kpi"><div class="utm-kpi-label">' . esc_html__( 'Attribution coverage', 'utm-coupons' )
+			. '</div><div class="utm-kpi-value">' . esc_html( $matched . ' / ' . ( $matched + $unmatched ) )
+			. '</div><div class="utm-kpi-hint">' . esc_html__( 'Orders traced to a click', 'utm-coupons' ) . '</div></div>';
+
+		echo '</div>';
+
+		$rest = array_slice( $currencies, 1 );
+		if ( ! empty( $rest ) ) {
+			$parts = array();
+			foreach ( $rest as $c ) {
+				$parts[] = Reports::money( $c['revenue'], $c['currency'] );
+			}
+			echo '<p class="description">' . sprintf(
+				/* translators: %s: comma-separated amounts in other currencies */
+				esc_html__( 'Also %s', 'utm-coupons' ),
+				esc_html( implode( ', ', $parts ) )
+			) . ' · <a href="https://app.utm.coupons/overview" target="_blank" rel="noopener">'
+				. esc_html__( 'Open full report', 'utm-coupons' ) . '</a></p>';
+		} else {
+			echo '<p class="description"><a href="https://app.utm.coupons/overview" target="_blank" rel="noopener">'
+				. esc_html__( 'Open full report', 'utm-coupons' ) . '</a></p>';
+		}
 	}
 
 	// ---------------------------------------------------------------------
