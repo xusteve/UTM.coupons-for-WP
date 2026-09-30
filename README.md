@@ -7,11 +7,14 @@ earned it — no manual exports, no code.
 - **Plugin page:** https://utm.coupons/wp-plugin/
 - **Integration guide:** https://utm.coupons/docs/wp-integrations/
 - **Dashboard:** https://app.utm.coupons
-- **Version:** 0.1.0 · **Requires:** WordPress 6.0+, PHP 7.4+
+- **Version:** 1.01 · **Requires:** WordPress 6.0+, PHP 7.4+
 - **License:** GPL-2.0-or-later
 
 ## What it does
 
+- **One-click connect** — approve the connection in your UTM.coupons dashboard
+  and the plugin provisions its API key, webhook endpoint and per-workspace
+  signing secret automatically, with no copy/paste across browsers.
 - **Auto-sync coupons** — create or edit a coupon in WooCommerce or Easy Digital
   Downloads and it appears in UTM.coupons immediately (Store → Platform).
 - **Attribution for every order** — when a customer checks out with a coupon, the
@@ -30,7 +33,10 @@ earned it — no manual exports, no code.
 
 1. Upload this folder to `/wp-content/plugins/utm-coupons-for-wp/` (or install via
    the Plugins screen), then activate **UTM.coupons for WP**.
-2. Go to **UTM.coupons → Connection** and paste your UTM.coupons API key.
+2. Go to **UTM.coupons → Connection** and click **Connect with UTM.coupons**. You
+   will be asked to approve the connection in your dashboard — an API key, a
+   webhook endpoint and the per-workspace conversion signing secret are created
+   automatically. No copy/paste across browsers.
 3. That's it. New coupons sync and orders are attributed automatically.
 
 ## Showing a coupon on your store
