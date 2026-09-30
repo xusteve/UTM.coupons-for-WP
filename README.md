@@ -7,7 +7,7 @@ earned it — no manual exports, no code.
 - **Plugin page:** https://utm.coupons/wp-plugin/
 - **Integration guide:** https://utm.coupons/docs/wp-integrations/
 - **Dashboard:** https://app.utm.coupons
-- **Version:** 1.01 · **Requires:** WordPress 6.0+, PHP 7.4+
+- **Version:** 1.02 · **Requires:** WordPress 6.0+, PHP 7.4+
 - **License:** GPL-2.0-or-later
 
 ## What it does
@@ -89,9 +89,11 @@ POST https://hooks.utm.coupons/v1/conversions
 x-utm-signature: <HMAC-SHA256 of the request body>
 ```
 
-The signature is computed with your HMAC secret, so a forged report is rejected.
-Failed deliveries are queued and retried — a temporary network problem never
-silently drops an order.
+The signature is computed with your workspace's conversion signing secret
+(provisioned automatically when you connect), and the payload carries your
+workspace id so the platform can verify it against the right secret — a forged
+report is rejected. Failed deliveries are queued and retried, so a temporary
+network problem never silently drops an order.
 
 SureCart and FluentCart have no order hooks of their own, so they report through
 the plugin's REST bridge instead:

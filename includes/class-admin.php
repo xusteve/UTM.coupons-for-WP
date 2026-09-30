@@ -121,10 +121,36 @@ class Admin {
 			return;
 		}
 		wp_add_inline_style( 'wp-admin', self::inline_css() );
-		wp_add_inline_script(
-			'wp-admin',
-			'jQuery(document).on("click",".utm-copy",function(){var t=jQuery(this).data("clip");if(navigator.clipboard){navigator.clipboard.writeText(t);jQuery(this).text("Copied").prop("disabled",true);setTimeout(()=>jQuery(this).text("Copy").prop("disabled",false),1500);}});'
-		);
+		// Print the copy handler in the footer instead of attaching it to a
+		// script handle: `wp-admin` is not a registered *script* handle, so
+		// wp_add_inline_script() silently dropped it and the Copy buttons did
+		// nothing when clicked.
+		add_action( 'admin_footer', array( __CLASS__, 'print_copy_script' ) );
+	}
+
+	/**
+	 * Copy-to-clipboard handler for every .utm-copy button.
+	 *
+	 * Restores the button's own label (a "Copy embed" button must not come back
+	 * as "Copy") and falls back to execCommand where the async clipboard API is
+	 * unavailable — e.g. a store served over plain HTTP.
+	 */
+	public static function print_copy_script() {
+		echo '<script>' . self::copy_script() . '</script>';
+	}
+
+	private static function copy_script() {
+		return 'jQuery(function($){$(document).on("click",".utm-copy",function(e){'
+			. 'e.preventDefault();'
+			. 'var b=$(this),t=b.data("clip")||"";'
+			. 'var o=b.data("utm-orig");if(!o){o=b.text();b.data("utm-orig",o);}'
+			. 'function done(){b.text("Copied").prop("disabled",true);setTimeout(function(){b.text(o).prop("disabled",false);},1500);}'
+			. 'function fallback(){var ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");'
+			. 'ta.style.position="fixed";ta.style.top="-1000px";document.body.appendChild(ta);ta.select();'
+			. 'try{document.execCommand("copy");}catch(err){}document.body.removeChild(ta);done();}'
+			. 'if(navigator.clipboard&&navigator.clipboard.writeText){'
+			. 'navigator.clipboard.writeText(t).then(done,fallback);}else{fallback();}'
+			. '});});';
 	}
 
 	private static function inline_css() {
@@ -149,8 +175,6 @@ class Admin {
 	public static function render_connection() {
 		$status   = Settings::get( Settings::OPT_STATUS, 'unconfigured' );
 		$last     = Settings::get( Settings::OPT_LAST_TEST, '' );
-		$api_mask = Settings::mask_secret( Settings::get_api_key() );
-		$hmac_set = '' !== Settings::get_hmac_secret();
 		$sync_a   = Settings::get( Settings::OPT_SYNC_A, '1' );
 		$sync_b   = Settings::get( Settings::OPT_SYNC_B, '0' );
 		$landing  = Settings::get( Settings::OPT_LANDING, '0' );
@@ -182,41 +206,27 @@ class Admin {
 		echo '<p><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=utm_coupons_test' ), 'utm_test' ) ) . '">' . esc_html__( 'Run connection test', 'utm-coupons' ) . '</a></p>';
 		echo '</div>';
 
-		// Advanced/manual settings form.
-		echo '<details style="max-width:640px;margin-bottom:20px"><summary style="cursor:pointer;font-weight:600;color:#57606a">' . esc_html__( 'Manual API credentials (advanced)', 'utm-coupons' ) . '</summary>';
-		echo '<div style="margin-top:12px">';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="utm_coupons_save_settings">';
-		wp_nonce_field( 'utm_save_settings' );
+		// Behaviour settings (kept outside the removed manual-credentials
+		// block — OAuth provisions all secrets automatically now). The toggles
+		// live inside the form so the checkbox values are actually submitted.
+		echo '<form id="utm-behaviour-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<div class="utm-card" style="max-width:640px;margin-bottom:20px">';
+		echo '<h3>' . esc_html__( 'Behaviour', 'utm-coupons' ) . '</h3>';
 		echo '<table class="form-table" role="presentation"><tbody>';
-
-		echo '<tr><th scope="row"><label for="utm_api">' . esc_html__( 'API key', 'utm-coupons' ) . '</label></th><td>';
-		echo '<input id="utm_api" name="utm_api_key" type="password" class="regular-text" autocomplete="off" placeholder="sk_live_...">';
-		if ( $api_mask ) {
-			echo ' <span class="utm-mask description">' . esc_html__( 'Current:', 'utm-coupons' ) . ' ' . esc_html( $api_mask ) . '</span>';
-		}
-		echo '<p class="description">' . esc_html__( 'Your UTM.coupons API key (sk_live_…). Leave blank to keep the existing key.', 'utm-coupons' ) . '</p></td></tr>';
-
-		echo '<tr><th scope="row"><label for="utm_hmac">' . esc_html__( 'Conversion HMAC secret', 'utm-coupons' ) . '</label></th><td>';
-		echo '<input id="utm_hmac" name="utm_hmac" type="password" class="regular-text" autocomplete="off">';
-		if ( $hmac_set ) {
-			echo ' <span class="description">' . esc_html__( 'Set & encrypted.', 'utm-coupons' ) . '</span>';
-		}
-		echo '<p class="description">' . esc_html__( 'Normally auto-provisioned by one-click connect. Paste manually only if you were given a secret directly.', 'utm-coupons' ) . '</p></td></tr>';
-
 		echo '<tr><th scope="row">' . esc_html__( 'Sync direction', 'utm-coupons' ) . '</th><td>';
 		echo self::toggle( 'sync_a', $sync_a, __( 'Store → UTM.coupons (real-time)', 'utm-coupons' ) );
 		echo '<br>' . self::toggle( 'sync_b', $sync_b, __( 'UTM.coupons → Store (every 6h)', 'utm-coupons' ) );
 		echo '</td></tr>';
-
 		echo '<tr><th scope="row">' . esc_html__( 'New coupon landing page', 'utm-coupons' ) . '</th><td>';
 		echo self::toggle( 'landing', $landing, __( 'Auto-create a public /c/ landing page for new coupons', 'utm-coupons' ) );
 		echo '<p class="description">' . esc_html__( 'Off by default — you opt in per coupon to keep internal/bulk codes private.', 'utm-coupons' ) . '</p></td></tr>';
-
 		echo '</tbody></table>';
 		echo '<p class="submit"><button type="submit" class="button button-primary">' . esc_html__( 'Save changes', 'utm-coupons' ) . '</button></p>';
+		echo '</div>';
+		echo '<input type="hidden" name="action" value="utm_coupons_save_settings">';
+		wp_nonce_field( 'utm_save_settings' );
 		echo '</form>';
-		echo '</div></details>';
+
 		echo '</div>';
 	}
 
@@ -308,13 +318,8 @@ class Admin {
 		if ( ! current_user_can( 'manage_options' ) || ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'utm_save_settings' ) ) {
 			wp_die( 'Permission denied' );
 		}
-		if ( ! empty( $_POST['utm_api_key'] ) ) {
-			Settings::set_api_key( sanitize_text_field( wp_unslash( $_POST['utm_api_key'] ) ) );
-			self::fetch_workspace();
-		}
-		if ( ! empty( $_POST['utm_hmac'] ) ) {
-			Settings::set_hmac_secret( sanitize_text_field( wp_unslash( $_POST['utm_hmac'] ) ) );
-		}
+		// Manual credential fields were removed with the advanced block —
+		// OAuth one-click connect provisions all secrets automatically.
 		Settings::set( Settings::OPT_SYNC_A, isset( $_POST['sync_a'] ) ? '1' : '0' );
 		Settings::set( Settings::OPT_SYNC_B, isset( $_POST['sync_b'] ) ? '1' : '0' );
 		Settings::set( Settings::OPT_LANDING, isset( $_POST['landing'] ) ? '1' : '0' );
@@ -338,26 +343,5 @@ class Admin {
 		$ok = Platforms::self_test();
 		Settings::set( Settings::OPT_STATUS, $ok ? 'connected' : 'unconfigured' );
 		Settings::set( Settings::OPT_LAST_TEST, gmdate( 'Y-m-d H:i:s' ) );
-	}
-
-	private static function fetch_workspace() {
-		$key = Settings::get_api_key();
-		if ( ! $key ) {
-			return;
-		}
-		$resp = wp_remote_get(
-			UTM_COUPONS_API_BASE . '/api/me',
-			array(
-				'headers' => array( 'Authorization' => 'Bearer ' . $key ),
-				'timeout' => 5,
-			)
-		);
-		if ( is_wp_error( $resp ) ) {
-			return;
-		}
-		$body = json_decode( wp_remote_retrieve_body( $resp ), true );
-		if ( isset( $body['workspace']['name'] ) ) {
-			Settings::set( Settings::OPT_WORKSPACE, $body['workspace']['name'] );
-		}
 	}
 }

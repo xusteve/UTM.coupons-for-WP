@@ -202,14 +202,35 @@ class Platforms {
 		if ( ! $secret ) {
 			return false;
 		}
+
+		// P2 (M5.4): reports are verified against a per-workspace signing
+		// secret, so the workspace id has to travel with the payload — same
+		// contract as Reporter::report(). Without it the hooks worker can only
+		// resolve the secret from the coupon code, and the synthetic test code
+		// below does not exist on the platform, so it falls back to the global
+		// secret and rejects a correctly signed request.
+		$workspace_id = OAuth_Client::ensure_workspace_id();
+		$code         = 'UTMSELFTEST';
+
+		// Installs that connected before workspace ids were stored have no id
+		// yet; send a coupon the platform already knows so it can still resolve
+		// the right secret.
+		if ( '' === $workspace_id ) {
+			$known = self::known_coupon_code();
+			if ( '' !== $known ) {
+				$code = $known;
+			}
+		}
+
 		$body = wp_json_encode(
 			array(
-				'orderId'    => 'T-WPSELFTEST',
-				'amount'     => 0,
-				'currency'   => 'USD',
-				'couponCode' => 'UTMSELFTEST',
-				'status'     => 'paid',
-				'occurredAt' => gmdate( 'Y-m-d' ) . 'T' . gmdate( 'H:i:s' ) . 'Z',
+				'orderId'     => 'T-WPSELFTEST',
+				'amount'      => 0,
+				'currency'    => 'USD',
+				'couponCode'  => $code,
+				'status'      => 'paid',
+				'occurredAt'  => gmdate( 'Y-m-d' ) . 'T' . gmdate( 'H:i:s' ) . 'Z',
+				'workspaceId' => $workspace_id,
 			)
 		);
 		$sig  = hash_hmac( 'sha256', $body, $secret );
@@ -231,5 +252,19 @@ class Platforms {
 		}
 		$code = (int) wp_remote_retrieve_response_code( $resp );
 		return $code >= 200 && $code < 300;
+	}
+
+	/**
+	 * A coupon code this store has already reported, or '' when there is none.
+	 *
+	 * @return string
+	 */
+	private static function known_coupon_code() {
+		$mirror = Reporter::get_mirror();
+		if ( empty( $mirror ) || ! is_array( $mirror ) ) {
+			return '';
+		}
+		$first = reset( $mirror );
+		return isset( $first['code'] ) ? strtoupper( (string) $first['code'] ) : '';
 	}
 }

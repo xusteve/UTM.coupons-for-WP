@@ -182,6 +182,58 @@ class OAuth_Client {
 	}
 
 	/**
+	 * Backfill the workspace id for installs that connected before it was
+	 * stored (or lost it).
+	 *
+	 * P2 verifies conversion reports against a per-workspace signing secret, so
+	 * a report without a workspace id is only accepted when the coupon happens
+	 * to exist on the platform. A store that connected with an older version
+	 * has the right secret but no id, and every report would be rejected with
+	 * 401 — asking every merchant to reconnect to fix that is not acceptable.
+	 * The id is recoverable from the API key we already hold, so fetch it once.
+	 *
+	 * @return string The workspace id, or '' when it cannot be resolved.
+	 */
+	public static function ensure_workspace_id() {
+		$workspace_id = Settings::get( Settings::OPT_WORKSPACE_ID, '' );
+		if ( '' !== $workspace_id ) {
+			return $workspace_id;
+		}
+
+		$api_key = Settings::get_api_key();
+		if ( '' === $api_key ) {
+			return ''; // Not connected — nothing to backfill from.
+		}
+
+		$response = wp_remote_get(
+			UTM_COUPONS_API_BASE . '/api/me',
+			array(
+				'headers'  => array( 'Authorization' => 'Bearer ' . $api_key ),
+				'timeout'  => 8,
+				'blocking' => true,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+
+		$http = (int) wp_remote_retrieve_response_code( $response );
+		if ( $http < 200 || $http >= 300 ) {
+			return '';
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		$id   = $body['data']['workspace']['id'] ?? '';
+		if ( '' === $id ) {
+			return '';
+		}
+
+		Settings::set( Settings::OPT_WORKSPACE_ID, sanitize_text_field( $id ) );
+		return $id;
+	}
+
+	/**
 	 * Disconnect: clear credentials and status.
 	 */
 	public static function handle_disconnect() {

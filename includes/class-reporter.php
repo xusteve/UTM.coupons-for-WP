@@ -47,8 +47,9 @@ class Reporter {
 				// P2 (M5.4): the platform verifies conversion reports against a
 				// per-workspace signing secret. Sending our workspace id lets
 				// the hooks worker pick the right secret without depending on
-				// the coupon existing in the platform ledger.
-				'workspaceId' => Settings::get( Settings::OPT_WORKSPACE_ID, '' ),
+				// the coupon existing in the platform ledger. ensure_workspace_id()
+				// backfills it for installs that connected before it was stored.
+				'workspaceId' => OAuth_Client::ensure_workspace_id(),
 			),
 			$extra
 		);
